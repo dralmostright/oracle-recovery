@@ -147,7 +147,8 @@ SQL>
 ```
 ***
 
-<ins>Step 5: Before simulating lets verify that datafile has no corruption</ins>
+<ins>Step 5: Before simulating lets verify that datafile has no corruption on both primary and standby</ins>
+* Primary
 ```
 [oracle@mysqlvm1 ~]$ dbv file=/u01/app/oracle/oradata/ORCL/users01.dbf blocksize=8192
 
@@ -190,6 +191,60 @@ Starting backup at 17-DEC-23
 using target database control file instead of recovery catalog
 allocated channel: ORA_DISK_1
 channel ORA_DISK_1: SID=85 device type=DISK
+channel ORA_DISK_1: starting full datafile backup set
+channel ORA_DISK_1: specifying datafile(s) in backup set
+input datafile file number=00007 name=/u01/app/oracle/oradata/ORCL/users01.dbf
+channel ORA_DISK_1: backup set complete, elapsed time: 00:00:01
+List of Datafiles
+=================
+File Status Marked Corrupt Empty Blocks Blocks Examined High SCN
+---- ------ -------------- ------------ --------------- ----------
+7    OK     0              93           641             2194605
+  File Name: /u01/app/oracle/oradata/ORCL/users01.dbf
+  Block Type Blocks Failing Blocks Processed
+  ---------- -------------- ----------------
+  Data       0              65
+  Index      0              15
+  Other      0              467
+
+Finished backup at 17-DEC-23
+
+RMAN>
+```
+* STANDBY
+```
+[oracle@mysqlvm4 ~]$ dbv file=/u01/app/oracle/oradata/ORCL/users01.dbf blocksize=8192
+
+DBVERIFY: Release 19.0.0.0.0 - Production on Sun Dec 17 12:19:11 2023
+
+Copyright (c) 1982, 2019, Oracle and/or its affiliates.  All rights reserved.
+
+DBVERIFY - Verification starting : FILE = /u01/app/oracle/oradata/ORCL/users01.dbf
+
+
+DBVERIFY - Verification complete
+
+Total Pages Examined         : 640
+Total Pages Processed (Data) : 65
+Total Pages Failing   (Data) : 0
+Total Pages Processed (Index): 15
+Total Pages Failing   (Index): 0
+Total Pages Processed (Other): 467
+Total Pages Processed (Seg)  : 0
+Total Pages Failing   (Seg)  : 0
+Total Pages Empty            : 93
+Total Pages Marked Corrupt   : 0
+Total Pages Influx           : 0
+Total Pages Encrypted        : 0
+Highest block SCN            : 2186788 (0.2186788)
+[oracle@mysqlvm4 ~]$ 
+
+RMAN> backup validate check logical datafile 7 SECTION SIZE 1024M;
+
+Starting backup at 17-DEC-23
+using target database control file instead of recovery catalog
+allocated channel: ORA_DISK_1
+channel ORA_DISK_1: SID=67 device type=DISK
 channel ORA_DISK_1: starting full datafile backup set
 channel ORA_DISK_1: specifying datafile(s) in backup set
 input datafile file number=00007 name=/u01/app/oracle/oradata/ORCL/users01.dbf
