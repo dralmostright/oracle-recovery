@@ -36,9 +36,7 @@ We will be using below configuration to test this scenario:
 
 </td></tr> </table>
 
-Step 1: Verify the primary (As we are simulating the block corruption, we are just verifying)
-***
-![image description](imgs/primary-1.png)
+<ins>Step 1: Verify the primary (As we are simulating the block corruption, we are just verifying)</ins>
 ```
 SQL> select name, open_mode,database_role from v$database;
 
@@ -60,6 +58,50 @@ LOG_ARCHIVE_DEST_2   orcldr                                                     
 
 SQL>
 ```
+***
+<ins>Step 2: Verify Log shipping mode in <strong>Primary</strong> </ins>
+```
+SQL> select dest_id , recovery_mode from  v$archive_dest_status where recovery_mode!='IDLE';
+
+   DEST_ID RECOVERY_MODE
+---------- ----------------------------------
+         2 MANAGED REAL TIME APPLY WITH QUERY
+
+SQL>
+```
+***
+<ins>Step 3: Lets identify the object and its block for which we want to simulate corruption </ins>
+```
+SQL> col table_name format a30
+SQL> select table_name,tablespace_name from dba_tables where owner='SUMAN' and table_name='TEST';
+
+TABLE_NAME                     TABLESPACE_NAME
+------------------------------ ------------------------------
+TEST                           USERS
+
+SQL> col file_name format a60
+SQL> set lines 222
+SQL> select file_name, tablespace_name from dba_data_files where tablespace_name='USERS';
+
+FILE_NAME                                                    TABLESPACE_NAME
+------------------------------------------------------------ ------------------------------
+/u01/app/oracle/oradata/ORCL/users01.dbf                     USERS
+
+SQL>
+SQL> select * from (select distinct dbms_rowid.rowid_block_number(rowid)  from suman.test);
+
+DBMS_ROWID.ROWID_BLOCK_NUMBER(ROWID)
+------------------------------------
+                                 350
+                                 351
+                                 349
+                                 347
+
+SQL>
+```
+***
+<ins>Step 2: </ins>
+
 ![image description](imgs/primary-2.png)
 ![image description](imgs/primary-3.png)
 ![image description](imgs/primary-4.png)
