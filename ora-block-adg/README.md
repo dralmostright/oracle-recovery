@@ -8,12 +8,24 @@ Automatic repair is supported with any Data Guard protection mode and works in t
 
 We will be using below configuration to test this scenario:
 
-| Primary      | Standby |
+<table>
+<tr><th>Primary </th><th>Standby</th></tr>
+<tr><td>
+
+| Parameter      | Value |
 | ----------- | ----------- |
-| Parameter      | Value |parameter       | Value |
-| ----------- | ----------- |----------- | ----------- |
-| Header      | Title       |Header      | Title       |
-| Paragraph   | Text        |Paragraph   | Text        |
+| Header      | Title       |
+| Paragraph   | Text        |
+
+</td><td>
+
+| Parameter      | Value |
+| ----------- | ----------- |
+| Header      | Title       |
+| Paragraph   | Text        |
+
+</td></tr> </table>
+
 
 ![image description](imgs/primary-1.png)
 ![image description](imgs/primary-2.png)
