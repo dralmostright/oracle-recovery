@@ -7,3 +7,9 @@ Starting from Oracle 12.2 in Data Guard Configuration the corrupted data blocks 
 Automatic repair is supported with any Data Guard protection mode and works in two directions but one of the instance participating in Data Guard must have healthy block. When an automatic block repair has been performed, a message is written to the database alert log. If automatic block repair is not possible, an ORA-1578 error is returned.
 
 We will be using below configuration to test this scenario:
+
+![image description](img/primary-1.png)
+![image description](img/primary-2.png)
+![image description](img/primary-3.png)
+![image description](img/primary-4.png)
+![image description](img/primary-5.png)
