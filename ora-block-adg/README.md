@@ -8,6 +8,13 @@ Automatic repair is supported with any Data Guard protection mode and works in t
 
 We will be using below configuration to test this scenario:
 
+| Primary      | Standby |
+| ----------- | ----------- |
+| Parameter      | Value |parameter       | Value |
+| ----------- | ----------- |----------- | ----------- |
+| Header      | Title       |Header      | Title       |
+| Paragraph   | Text        |Paragraph   | Text        |
+
 ![image description](imgs/primary-1.png)
 ![image description](imgs/primary-2.png)
 ![image description](imgs/primary-3.png)
