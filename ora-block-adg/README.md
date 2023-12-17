@@ -277,6 +277,7 @@ We are good as there is no corruption in primary as well as standby as of now.
 8192 bytes (8.2 kB, 8.0 KiB) copied, 4.2965e-05 s, 191 MB/s
 [oracle@mysqlvm1 ~]$
 ```
+Note: This will not be propagated to standby as Database is not aware of this change. Hence the block in standby still will be healthy.
 ***
 <ins>Step 7: Lets verify if above corrupted some blocks or not in <strong>Primary</strong> </ins>
 ```
@@ -339,6 +340,9 @@ Finished backup at 17-DEC-23
 
 RMAN>
 ```
+Validate command also reported some blocks are corrupted.
+
+Now lets verify at database level how may blocks are corrupted.
 ```
 SQL> select name, open_mode, database_role from v$database;
 
@@ -355,5 +359,134 @@ SQL> select * from v$database_block_corruption;
 SQL>
 ```
 
+<ins>Step 8: Ok now how to fix it. Its simple we just need to query and fetch the data from corrputed blocks.</ins>
+```
+SQL> alter system flush buffer_cache;
 
-<ins>Step 2: </ins>
+System altered.
+
+SQL> select count(*) from suman.test;
+
+  COUNT(*)
+----------
+       185
+
+SQL> select * from v$database_block_corruption;
+
+     FILE#     BLOCK#     BLOCKS CORRUPTION_CHANGE# CORRUPTIO     CON_ID
+---------- ---------- ---------- ------------------ --------- ----------
+         7        351          1                  0 ALL ZERO           0
+
+SQL> select name, open_mode, database_role from v$database;
+
+NAME      OPEN_MODE            DATABASE_ROLE
+--------- -------------------- ----------------
+ORCL      READ WRITE           PRIMARY
+
+SQL>
+```
+Ok while querying we didn't encounter any errors or we are not reported it has corrputed blocks and its due to Automatic Block Media Recovery in a DataGuard feature. And during this operation oracle will throw some messages in alert log as below:
+
+```
+Corrupt block relative dba: 0x01c0015f (file 7, block 351)
+Completely zero block found during multiblock buffer read
+
+Reading datafile '/u01/app/oracle/oradata/ORCL/users01.dbf' for corrupt data at rdba: 0x01c0015f (file 7, block 351)
+Reread (file 7, block 351) found same corrupt data (no logical check)
+Automatic block media recovery requested for (file# 7, block# 351)
+2023-12-17T12:44:55.769222+05:45
+Corrupt Block Found
+         TIME STAMP (GMT) = 12/17/2023 12:44:55
+         CONT = 0, TSN = 4, TSNAME = USERS
+         RFN = 7, BLK = 351, RDBA = 29360479
+         OBJN = 73231, OBJD = 73231, OBJECT = TEST, SUBOBJECT =
+         SEGMENT OWNER = SUMAN, SEGMENT TYPE = Table Segment
+2023-12-17T12:44:55.871650+05:45
+Automatic block media recovery successful for (file# 7, block# 351)
+2023-12-17T12:44:55.872183+05:45
+Automatic block media recovery successful for (file# 7, block# 351)
+```
+
+Eventhough the block is repaired why are we still seeing block corrupt rows in v$database_block_corruption, for this we will need to validate the block from RMAN and lets see if actually resolved the corruption.
+```
+[oracle@mysqlvm1 ~]$ dbv file=/u01/app/oracle/oradata/ORCL/users01.dbf blocksize=8192
+
+DBVERIFY: Release 19.0.0.0.0 - Production on Sun Dec 17 12:48:09 2023
+
+Copyright (c) 1982, 2019, Oracle and/or its affiliates.  All rights reserved.
+
+DBVERIFY - Verification starting : FILE = /u01/app/oracle/oradata/ORCL/users01.dbf
+
+
+DBVERIFY - Verification complete
+
+Total Pages Examined         : 640
+Total Pages Processed (Data) : 65
+Total Pages Failing   (Data) : 0
+Total Pages Processed (Index): 15
+Total Pages Failing   (Index): 0
+Total Pages Processed (Other): 467
+Total Pages Processed (Seg)  : 0
+Total Pages Failing   (Seg)  : 0
+Total Pages Empty            : 93
+Total Pages Marked Corrupt   : 0
+Total Pages Influx           : 0
+Total Pages Encrypted        : 0
+Highest block SCN            : 2194605 (0.2194605)
+[oracle@mysqlvm1 ~]$
+```
+DBV says the datafile is green. Now lets verify from RMAN too.
+```
+RMAN> backup validate check logical datafile 7 SECTION SIZE 1024M;
+
+Starting backup at 17-DEC-23
+using target database control file instead of recovery catalog
+allocated channel: ORA_DISK_1
+channel ORA_DISK_1: SID=61 device type=DISK
+channel ORA_DISK_1: starting full datafile backup set
+channel ORA_DISK_1: specifying datafile(s) in backup set
+input datafile file number=00007 name=/u01/app/oracle/oradata/ORCL/users01.dbf
+channel ORA_DISK_1: backup set complete, elapsed time: 00:00:01
+List of Datafiles
+=================
+File Status Marked Corrupt Empty Blocks Blocks Examined High SCN
+---- ------ -------------- ------------ --------------- ----------
+7    OK     0              93           641             2194605
+  File Name: /u01/app/oracle/oradata/ORCL/users01.dbf
+  Block Type Blocks Failing Blocks Processed
+  ---------- -------------- ----------------
+  Data       0              65
+  Index      0              15
+  Other      0              467
+
+Finished backup at 17-DEC-23
+
+RMAN>
+```
+RMAN to says there are not corrputed blocks in datafile. Lets verify in database too.
+```
+[oracle@mysqlvm1 ~]$ sqlplus / as sysdba
+
+SQL*Plus: Release 19.0.0.0.0 - Production on Sun Dec 17 12:50:04 2023
+Version 19.3.0.0.0
+
+Copyright (c) 1982, 2019, Oracle.  All rights reserved.
+
+
+Connected to:
+Oracle Database 19c Enterprise Edition Release 19.0.0.0.0 - Production
+Version 19.3.0.0.0
+
+SQL> select name, open_mode, database_role from v$database;
+
+NAME      OPEN_MODE            DATABASE_ROLE
+--------- -------------------- ----------------
+ORCL      READ WRITE           PRIMARY
+
+SQL> select * from v$database_block_corruption;
+
+no rows selected
+
+SQL>
+```
+Database side also the rows which were reporting block corruption are gone.
