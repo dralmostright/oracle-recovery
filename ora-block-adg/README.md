@@ -175,7 +175,8 @@ Total Pages Influx           : 0
 Total Pages Encrypted        : 0
 Highest block SCN            : 2186796 (0.2186796)
 [oracle@mysqlvm1 ~]$
-
+```
+```
 [oracle@mysqlvm1 ~]$ rman target /
 
 Recovery Manager: Release 19.0.0.0.0 - Production on Sun Dec 17 12:18:01 2023
@@ -211,7 +212,7 @@ Finished backup at 17-DEC-23
 
 RMAN>
 ```
-* STANDBY
+* Standby
 ```
 [oracle@mysqlvm4 ~]$ dbv file=/u01/app/oracle/oradata/ORCL/users01.dbf blocksize=8192
 
@@ -238,7 +239,8 @@ Total Pages Influx           : 0
 Total Pages Encrypted        : 0
 Highest block SCN            : 2186788 (0.2186788)
 [oracle@mysqlvm4 ~]$ 
-
+```
+```
 RMAN> backup validate check logical datafile 7 SECTION SIZE 1024M;
 
 Starting backup at 17-DEC-23
@@ -265,10 +267,93 @@ Finished backup at 17-DEC-23
 
 RMAN>
 ```
+We are good as there is no corruption in primary as well as standby as of now.
 ***
-<ins>Step 2: </ins>
+<ins>Step 6: Lets mark one of the block as corrupt in <strong>Primary</strong> </ins>
+```
+[oracle@mysqlvm1 ~]$ dd of=/u01/app/oracle/oradata/ORCL/users01.dbf bs=8192 seek=351 conv=notrunc count=1 if=/dev/zero
+1+0 records in
+1+0 records out
+8192 bytes (8.2 kB, 8.0 KiB) copied, 4.2965e-05 s, 191 MB/s
+[oracle@mysqlvm1 ~]$
+```
+***
+<ins>Step 7: Lets verify if above corrupted some blocks or not in <strong>Primary</strong> </ins>
+```
+[oracle@mysqlvm1 ~]$ dbv file=/u01/app/oracle/oradata/ORCL/users01.dbf blocksize=8192
 
-![image description](imgs/primary-2.png)
-![image description](imgs/primary-3.png)
-![image description](imgs/primary-4.png)
-![image description](imgs/primary-5.png)
+DBVERIFY: Release 19.0.0.0.0 - Production on Sun Dec 17 12:23:33 2023
+
+Copyright (c) 1982, 2019, Oracle and/or its affiliates.  All rights reserved.
+
+DBVERIFY - Verification starting : FILE = /u01/app/oracle/oradata/ORCL/users01.dbf
+Page 351 is marked corrupt
+Corrupt block relative dba: 0x01c0015f (file 7, block 351)
+Completely zero block found during dbv:
+
+
+
+DBVERIFY - Verification complete
+
+Total Pages Examined         : 640
+Total Pages Processed (Data) : 64
+Total Pages Failing   (Data) : 0
+Total Pages Processed (Index): 15
+Total Pages Failing   (Index): 0
+Total Pages Processed (Other): 467
+Total Pages Processed (Seg)  : 0
+Total Pages Failing   (Seg)  : 0
+Total Pages Empty            : 93
+Total Pages Marked Corrupt   : 1
+Total Pages Influx           : 0
+Total Pages Encrypted        : 0
+Highest block SCN            : 2186796 (0.2186796)
+[oracle@mysqlvm1 ~]$
+```
+Ok now we can see one of the block is corrupted : <strong>Total Pages Marked Corrupt   : 1 </strong>
+
+```
+RMAN> backup validate check logical datafile 7 SECTION SIZE 1024M;
+
+Starting backup at 17-DEC-23
+using channel ORA_DISK_1
+channel ORA_DISK_1: starting full datafile backup set
+channel ORA_DISK_1: specifying datafile(s) in backup set
+input datafile file number=00007 name=/u01/app/oracle/oradata/ORCL/users01.dbf
+channel ORA_DISK_1: backup set complete, elapsed time: 00:00:01
+List of Datafiles
+=================
+File Status Marked Corrupt Empty Blocks Blocks Examined High SCN
+---- ------ -------------- ------------ --------------- ----------
+7    FAILED 0              93           641             2186796
+  File Name: /u01/app/oracle/oradata/ORCL/users01.dbf
+  Block Type Blocks Failing Blocks Processed
+  ---------- -------------- ----------------
+  Data       0              64
+  Index      0              15
+  Other      1              468
+
+validate found one or more corrupt blocks
+See trace file /u01/app/oracle/diag/rdbms/orcl/orcl/trace/orcl_ora_5229.trc for details
+Finished backup at 17-DEC-23
+
+RMAN>
+```
+```
+SQL> select name, open_mode, database_role from v$database;
+
+NAME      OPEN_MODE            DATABASE_ROLE
+--------- -------------------- ----------------
+ORCL      READ WRITE           PRIMARY
+
+SQL> select * from v$database_block_corruption;
+
+     FILE#     BLOCK#     BLOCKS CORRUPTION_CHANGE# CORRUPTIO     CON_ID
+---------- ---------- ---------- ------------------ --------- ----------
+         7        351          1                  0 ALL ZERO           0
+
+SQL>
+```
+
+
+<ins>Step 2: </ins>
