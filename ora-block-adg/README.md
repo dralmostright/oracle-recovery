@@ -490,3 +490,6 @@ no rows selected
 SQL>
 ```
 Database side also the rows which were reporting block corruption are gone.
+
+
+This feature is great to have, and it may not fix all kinds of corruption (which i may be yet to encounter), but if you have ADG lisence it's worth's.
