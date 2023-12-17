@@ -36,9 +36,30 @@ We will be using below configuration to test this scenario:
 
 </td></tr> </table>
 
-Step 1: Verify the primary 
+Step 1: Verify the primary (As we are simulating the block corruption, we are just verifying)
 ***
 ![image description](imgs/primary-1.png)
+```
+SQL> select name, open_mode,database_role from v$database;
+
+NAME      OPEN_MODE            DATABASE_ROLE
+--------- -------------------- ----------------
+ORCL      READ WRITE           PRIMARY
+
+SQL> select * from v$database_block_corruption;
+
+no rows selected
+
+SQL> col destination format a60
+SQL> col dest_name format a20
+SQL> select dest_name,DESTINATION,status from v$archive_dest where destination is not null; 
+DEST_NAME            DESTINATION                                                  STATUS
+-------------------- ------------------------------------------------------------ ---------
+LOG_ARCHIVE_DEST_1   /u01/app/oracle/product/19.0.0.0/dbhome_1/dbs/arch           VALID
+LOG_ARCHIVE_DEST_2   orcldr                                                       VALID
+
+SQL>
+```
 ![image description](imgs/primary-2.png)
 ![image description](imgs/primary-3.png)
 ![image description](imgs/primary-4.png)
