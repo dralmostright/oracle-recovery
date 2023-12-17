@@ -8,25 +8,36 @@ Automatic repair is supported with any Data Guard protection mode and works in t
 
 We will be using below configuration to test this scenario:
 
+#### Data Guard Configuration
+
 <table>
 <tr><th>Primary </th><th>Standby</th></tr>
 <tr><td>
 
 | Parameter      | Value |
 | ----------- | ----------- |
-| Header      | Title       |
-| Paragraph   | Text        |
+| Version      | 19.3       |
+| Database Type   | Standalone        |
+| ASM | NO |
+|Source host | mysqlvm1.localdomain|
+|Source database |orcl|
+|Source unique name |orcl|
 
 </td><td>
 
 | Parameter      | Value |
 | ----------- | ----------- |
-| Header      | Title       |
-| Paragraph   | Text        |
+| Version      | 19.3       |
+| Database Type   | Standalone        |
+|ASM | NO|
+|Source host | mysqlvm4.localdomain|
+|Source database |orcl|
+|Source unique name |orcldr|
 
 </td></tr> </table>
 
-
+Step 1: Verify the primary 
+***
 ![image description](imgs/primary-1.png)
 ![image description](imgs/primary-2.png)
 ![image description](imgs/primary-3.png)
